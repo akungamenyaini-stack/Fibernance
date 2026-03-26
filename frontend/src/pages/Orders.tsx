@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useFinishOrder, useCancelOrder } from '../api/orders';
 import { getOrders, ComboOrderResponse } from '../api/orders';
@@ -15,6 +15,9 @@ const Orders: React.FC = () => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'item' | 'diamond'>('date-desc');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const handleFinish = async (orderId: string) => {
     try {
@@ -66,6 +69,52 @@ const Orders: React.FC = () => {
     }
   };
 
+  // Search logic - memoized for performance
+  const searchOrders = (ordersToSearch: ComboOrderResponse[], term: string): ComboOrderResponse[] => {
+    if (!term.trim()) return ordersToSearch;
+    
+    const lowerTerm = term.toLowerCase().trim();
+    // Multi-field search: Order ID, Game ID, Buyer Name, Game Username, Item Name
+    return ordersToSearch.filter((order) => {
+      return (
+        order.invoice_ref.toLowerCase().includes(lowerTerm) ||
+        order.target_id.toLowerCase().includes(lowerTerm) ||
+        order.buyer_name.toLowerCase().includes(lowerTerm) ||
+        order.game_username.toLowerCase().includes(lowerTerm) ||
+        order.item_name.toLowerCase().includes(lowerTerm)
+      );
+    });
+  };
+
+  // Sort logic - memoized for performance
+  const sortOrders = (ordersToSort: ComboOrderResponse[]): ComboOrderResponse[] => {
+    const sorted = [...ordersToSort];
+    
+    switch (sortBy) {
+      case 'date-desc':
+        return sorted.sort((a, b) => new Date(b.delivery_at).getTime() - new Date(a.delivery_at).getTime());
+      case 'date-asc':
+        return sorted.sort((a, b) => new Date(a.delivery_at).getTime() - new Date(b.delivery_at).getTime());
+      case 'item':
+        return sorted.sort((a, b) => a.item_name.localeCompare(b.item_name));
+      case 'diamond':
+        return sorted.sort((a, b) => 
+          sortDirection === 'desc' 
+            ? b.total_diamond - a.total_diamond 
+            : a.total_diamond - b.total_diamond
+        );
+      default:
+        return sorted;
+    }
+  };
+
+  // Filter and sort orders based on search term and sort option (memoized)
+  const filteredAndSortedOrders = useMemo(() => {
+    if (!orders) return [];
+    const filtered = searchOrders(orders, searchTerm);
+    return sortOrders(filtered);
+  }, [orders, searchTerm, sortBy, sortDirection]);
+
   return (
     <div className="min-h-screen bg-white animate-fade-slide-up">
       {/* Header */}
@@ -74,6 +123,61 @@ const Orders: React.FC = () => {
         <p className="mt-2 text-sm text-gray-600 font-sans">
           Manage all combo orders and track deliveries
         </p>
+      </div>
+
+      {/* Search & Sort Bar */}
+      <div className="border-b border-gray-200 px-4 lg:px-8 py-4">
+        <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+          {/* Search Input */}
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Cari: Order ID, ID Game, Nama Pembeli, atau Username..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 text-sm border border-gray-300 rounded-none focus:border-black focus:outline-none transition-colors"
+            />
+            {searchTerm && (
+              <p className="mt-1 text-xs text-gray-600">
+                Ditemukan <span className="font-semibold">{filteredAndSortedOrders.length}</span> pesanan
+              </p>
+            )}
+          </div>
+
+          {/* Sort Controls */}
+          <div className="flex gap-2 items-center lg:flex-shrink-0">
+            <label className="text-xs font-semibold text-charcoal uppercase tracking-wide whitespace-nowrap">
+              Sortir:
+            </label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="px-3 py-2 text-sm border border-gray-300 bg-white rounded-none focus:border-black focus:outline-none transition-colors cursor-pointer"
+            >
+              <option value="date-desc">Pengiriman (Terbaru)</option>
+              <option value="date-asc">Pengiriman (Terdekat)</option>
+              <option value="item">Nama Item (A-Z)</option>
+              <option value="diamond">Total Diamond</option>
+            </select>
+
+            {/* Sort Direction Icon */}
+            {sortBy === 'diamond' && (
+              <button
+                onClick={() => setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc')}
+                className="p-2 border border-gray-300 hover:bg-gray-50 transition-colors rounded-none"
+                title={sortDirection === 'desc' ? 'Terbesar ke Terkecil' : 'Terkecil ke Terbesar'}
+              >
+                {/* Sort Icon - Lines getting smaller going down */}
+                <svg className={`w-4 h-4 transition-transform ${sortDirection === 'asc' ? 'rotate-180' : ''}`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <line x1="3" y1="5" x2="21" y2="5" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="5" y1="11" x2="19" y2="11" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="9" y1="17" x2="15" y2="17" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Content */}
@@ -96,7 +200,13 @@ const Orders: React.FC = () => {
           </div>
         )}
 
-        {orders && orders.length > 0 && (
+        {filteredAndSortedOrders && filteredAndSortedOrders.length === 0 && orders && orders.length > 0 && (
+          <div className="text-center py-16">
+            <p className="text-sm text-gray-600 font-sans">Tidak ada pesanan yang sesuai dengan pencarian</p>
+          </div>
+        )}
+
+        {filteredAndSortedOrders && filteredAndSortedOrders.length > 0 && (
           <div>
             {/* Filter Tabs */}
             <div className="mb-6 flex items-center gap-0 border-b border-gray-200">
@@ -108,7 +218,7 @@ const Orders: React.FC = () => {
                     : 'border-transparent text-gray-600 hover:text-black'
                 }`}
               >
-                Active Orders ({orders.filter((o) => o.status === 'PENDING').length})
+                Active Orders ({filteredAndSortedOrders.filter((o) => o.status === 'PENDING').length})
               </button>
               <button
                 onClick={() => setActiveTab('history')}
@@ -118,7 +228,7 @@ const Orders: React.FC = () => {
                     : 'border-transparent text-gray-600 hover:text-black'
                 }`}
               >
-                History ({orders.filter((o) => o.status !== 'PENDING').length})
+                History ({filteredAndSortedOrders.filter((o) => o.status !== 'PENDING').length})
               </button>
             </div>
 
@@ -154,7 +264,7 @@ const Orders: React.FC = () => {
 
                 {/* Table Body */}
                 <tbody>
-                  {orders
+                  {filteredAndSortedOrders
                     .filter((order) =>
                       activeTab === 'active'
                         ? order.status === 'PENDING'
@@ -241,7 +351,7 @@ const Orders: React.FC = () => {
 
             {/* Mobile: Compact Expandable Cards */}
             <div className="md:hidden space-y-3">
-              {orders
+              {filteredAndSortedOrders
                 .filter((order) =>
                   activeTab === 'active'
                     ? order.status === 'PENDING'
