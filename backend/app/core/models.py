@@ -154,6 +154,11 @@ class Order(SQLModel, table=True):
         max_length=200,
         description="Name of the buyer/customer",
     )
+    game_username: str = Field(
+        default="",
+        max_length=100,
+        description="Game account username (e.g., from Itemku order)",
+    )
     item_name: str = Field(
         min_length=1,
         max_length=200,
@@ -178,6 +183,11 @@ class Order(SQLModel, table=True):
         default_factory=dict,
         sa_column=Column(JSON),
         description="JSON breakdown of diamond deductions per account",
+    )
+    sending_accounts: dict = Field(
+        default_factory=dict,
+        sa_column=Column(JSON),
+        description="JSON list of sending accounts with their names and deductions",
     )
     delivery_at: Optional[datetime] = Field(
         default=None,
@@ -222,6 +232,7 @@ class OrderCreate(SQLModel):
     target_id: str = Field(min_length=1, max_length=100)
     server_id: str = Field(min_length=1, max_length=50)
     buyer_name: str = Field(min_length=1, max_length=100)
+    game_username: str = Field(default="", max_length=100)
     item_name: str = Field(min_length=1, max_length=100)
     quantity: int = Field(default=1, ge=1)
     total_diamond: int = Field(ge=0)
@@ -236,6 +247,7 @@ class OrderUpdate(SQLModel):
     target_id: Optional[str] = Field(None, min_length=1, max_length=100)
     server_id: Optional[str] = Field(None, min_length=1, max_length=50)
     buyer_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    game_username: Optional[str] = Field(None, max_length=100)
     item_name: Optional[str] = Field(None, min_length=1, max_length=100)
     quantity: Optional[int] = Field(None, ge=1)
     total_diamond: Optional[int] = Field(None, ge=0)
@@ -251,11 +263,13 @@ class OrderResponse(SQLModel):
     target_id: str
     server_id: str
     buyer_name: str
+    game_username: str
     item_name: str
     quantity: int
     total_diamond: int
     status: str
     deduction_breakdown: dict
+    sending_accounts: dict
     delivery_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime

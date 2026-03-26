@@ -124,7 +124,7 @@ const Orders: React.FC = () => {
 
             {/* Desktop: Table View */}
             <div className="hidden md:block overflow-x-auto border border-gray-200 rounded-none pb-4">
-              <table className="w-full min-w-[900px]">
+              <table className="w-full min-w-[1200px]">
                 {/* Table Header */}
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
@@ -132,16 +132,19 @@ const Orders: React.FC = () => {
                       Invoice
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-black font-sans uppercase tracking-wide">
-                      Target
+                      Item
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-black font-sans uppercase tracking-wide">
+                      Buyer
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-black font-sans uppercase tracking-wide">
+                      Game Account
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-black font-sans uppercase tracking-wide">
                       Diamond
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-black font-sans uppercase tracking-wide">
                       Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-black font-sans uppercase tracking-wide">
-                      Est. Delivery
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-black font-sans uppercase tracking-wide">
                       Actions
@@ -169,10 +172,23 @@ const Orders: React.FC = () => {
                           {order.invoice_ref}
                         </td>
 
-                        {/* Target */}
+                        {/* Item */}
+                        <td className="px-6 py-4 text-sm text-charcoal font-sans">
+                          <div className="font-semibold text-black">{order.quantity}x {order.item_name}</div>
+                        </td>
+
+                        {/* Buyer */}
+                        <td className="px-6 py-4 text-sm text-charcoal font-sans">
+                          <div className="text-black">{order.buyer_name}</div>
+                        </td>
+
+                        {/* Game Account */}
                         <td className="px-6 py-4 text-sm text-charcoal font-sans">
                           <div className="font-semibold text-black">{order.target_id}</div>
-                          <div className="text-xs text-gray-600">{order.server_id}</div>
+                          {order.game_username && (
+                            <div className="text-xs text-gray-600">{order.game_username}</div>
+                          )}
+                          <div className="text-xs text-gray-600">Zone: {order.server_id}</div>
                         </td>
 
                         {/* Diamond */}
@@ -182,11 +198,6 @@ const Orders: React.FC = () => {
 
                         {/* Status */}
                         <td className="px-6 py-4">{getStatusBadge(order.status)}</td>
-
-                        {/* Est. Delivery */}
-                        <td className="px-6 py-4 text-sm text-charcoal font-sans">
-                          {formatDeliveryDate(order.delivery_at)}
-                        </td>
 
                         {/* Actions */}
                         <td className="px-6 py-4">
@@ -238,45 +249,139 @@ const Orders: React.FC = () => {
                 )
                 .map((order) => (
                   <div key={order.id} className="border border-gray-200 rounded-none bg-white overflow-hidden">
-                    {/* Card Header - Always Visible */}
+                    {/* Card Header - Always Visible (Summary Info) */}
                     <button
                       onClick={() =>
                         setExpandedOrderId(expandedOrderId === order.id ? null : order.id)
                       }
-                      className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                      className="w-full px-4 py-3 flex flex-col gap-2 hover:bg-gray-50 transition-colors text-left"
                     >
-                      {/* Left: Invoice & Target */}
-                      <div className="flex flex-col items-start">
-                        <p className="font-semibold text-black text-sm">{order.invoice_ref}</p>
-                        <p className="text-xs text-gray-600 mt-1">{order.target_id}</p>
+                      {/* Row 1: Item Info + Status */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="font-semibold text-black text-sm">{order.quantity}x {order.item_name}</p>
+                        </div>
+                        <div className="flex-shrink-0">
+                          {getStatusBadge(order.status)}
+                        </div>
                       </div>
 
-                      {/* Right: Diamond & Status */}
-                      <div className="flex flex-col items-end gap-1">
-                        <p className="font-semibold text-black text-sm">{order.total_diamond.toLocaleString()}</p>
-                        {getStatusBadge(order.status)}
+                      {/* Row 2: Buyer Name */}
+                      <div className="text-xs text-gray-700">
+                        <span className="font-semibold">Pembeli:</span> {order.buyer_name}
+                      </div>
+
+                      {/* Row 3: Game ID Lengkap */}
+                      <div className="text-xs text-gray-700">
+                        <span className="font-semibold">Game ID:</span> {order.target_id}
+                        {order.game_username && <>
+                          {' | '}
+                          <span>{order.game_username}</span>
+                        </>}
+                        {' | Zone: '}{order.server_id}
+                      </div>
+
+                      {/* Row 4: Processing Account */}
+                      {order.sending_accounts && Object.keys(order.sending_accounts).length > 0 && (
+                        <div className="text-xs text-gray-700">
+                          <span className="font-semibold">Akun Pengiriman:</span>{' '}
+                          {Object.entries(order.sending_accounts).map(([accountId, accountData]: [string, any], idx) => {
+                            const accountName = typeof accountData === 'object' && accountData.name ? accountData.name : accountData;
+                            return (
+                              <span key={accountId}>
+                                {idx > 0 && ', '}
+                                {accountName}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Row 5: Delivery Time */}
+                      <div className="text-xs text-gray-700">
+                        <span className="font-semibold">Pengiriman:</span> {formatDeliveryDate(order.delivery_at)}
                       </div>
                     </button>
 
-                    {/* Card Details - Expandable */}
+                    {/* Card Details - Expandable (Full Details) */}
                     {expandedOrderId === order.id && (
                       <div className="border-t border-gray-200 px-4 py-3 bg-gray-50 space-y-3">
-                        {/* Item */}
+                        {/* Invoice Reference */}
                         <div>
-                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Item</p>
+                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Invoice Reference</p>
+                          <p className="text-sm text-black font-mono">{order.invoice_ref}</p>
+                        </div>
+
+                        {/* Item Details */}
+                        <div>
+                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Item Pesanan</p>
                           <p className="text-sm text-black">{order.quantity}x {order.item_name || 'N/A'}</p>
                         </div>
 
-                        {/* Server */}
+                        {/* Buyer Name */}
                         <div>
-                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Server</p>
-                          <p className="text-sm text-black">{order.server_id}</p>
+                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Nama Pembeli</p>
+                          <p className="text-sm text-black">{order.buyer_name}</p>
                         </div>
 
-                        {/* Delivery */}
+                        {/* Game Account - Full Details */}
                         <div>
-                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Est. Delivery</p>
+                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Game Account (Target)</p>
+                          <div className="text-sm text-black space-y-1">
+                            <p><span className="font-semibold">Player ID:</span> {order.target_id}</p>
+                            {order.game_username && (
+                              <p><span className="font-semibold">Username:</span> {order.game_username}</p>
+                            )}
+                            <p><span className="font-semibold">Zone/Server:</span> {order.server_id}</p>
+                          </div>
+                        </div>
+
+                        {/* Diamond Details */}
+                        <div>
+                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Total Diamond</p>
+                          <p className="text-sm text-black font-semibold">{order.total_diamond.toLocaleString()} 💎</p>
+                        </div>
+
+                        {/* Processing Accounts - Full Details */}
+                        {order.sending_accounts && Object.keys(order.sending_accounts).length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Akun Pengiriman (Processing)</p>
+                            <div className="text-sm text-black space-y-1">
+                              {Object.entries(order.sending_accounts).map(([accountId, accountData]: [string, any]) => {
+                                const accountName = typeof accountData === 'object' && accountData.name ? accountData.name : accountData;
+                                const deduction = order.deduction_breakdown[accountId] || 0;
+                                return (
+                                  <div key={accountId} className="flex justify-between items-center p-2 bg-white border border-gray-200 rounded">
+                                    <span className="font-semibold">{accountName}</span>
+                                    <span className="text-gray-600">{deduction.toLocaleString()} 💎</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Delivery Information */}
+                        <div>
+                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Estimasi Pengiriman</p>
                           <p className="text-sm text-black">{formatDeliveryDate(order.delivery_at)}</p>
+                        </div>
+
+                        {/* Order Status */}
+                        <div>
+                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Status Pesanan</p>
+                          <div className="text-sm">
+                            {getStatusBadge(order.status)}
+                          </div>
+                        </div>
+
+                        {/* Order Timestamps */}
+                        <div className="border-t border-gray-200 pt-2">
+                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-2">Metadata</p>
+                          <div className="text-xs text-gray-600 space-y-1">
+                            <p><span className="font-semibold">Created:</span> {formatDeliveryDate(order.created_at)}</p>
+                            <p><span className="font-semibold">Updated:</span> {formatDeliveryDate(order.updated_at)}</p>
+                          </div>
                         </div>
 
                         {/* Actions */}
@@ -289,14 +394,14 @@ const Orders: React.FC = () => {
                                   disabled={finishMutation.isPending}
                                   className="flex-1 px-3 py-2 text-xs font-semibold text-white bg-black hover:bg-charcoal disabled:opacity-50 transition-colors rounded-none"
                                 >
-                                  {finishMutation.isPending ? 'Finishing...' : 'Finish'}
+                                  {finishMutation.isPending ? 'Finishing...' : 'Finish Order'}
                                 </button>
                                 <button
                                   onClick={() => handleCancel(order.id)}
                                   disabled={cancelMutation.isPending}
                                   className="flex-1 px-3 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors rounded-none"
                                 >
-                                  {cancelMutation.isPending ? 'Cancelling...' : 'Cancel'}
+                                  {cancelMutation.isPending ? 'Cancelling...' : 'Cancel Order'}
                                 </button>
                               </>
                             )}

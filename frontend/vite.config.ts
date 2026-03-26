@@ -8,6 +8,14 @@ export default defineConfig({
     port: 5173,
     host: true,
     strictPort: false,
+    // --- TAMBAHKAN BAGIAN PROXY INI ---
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8000', // Alamat backend FastAPI kamu
+        changeOrigin: true,
+      }
+    }
+    // ----------------------------------
   },
   build: {
     outDir: 'dist',

@@ -48,6 +48,11 @@ class ComboOrderRequest(BaseModel):
         max_length=200,
         description="Name of the buyer/customer",
     )
+    game_username: str = Field(
+        default="",
+        max_length=100,
+        description="Game account username (from Itemku order)",
+    )
     item_name: str = Field(
         min_length=1,
         max_length=200,

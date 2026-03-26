@@ -14,14 +14,17 @@ export interface ComboOrderPayload {
 export interface ComboOrderResponse {
   id: string;
   invoice_ref: string;
+  order_id: string;
   target_id: string;
   server_id: string;
+  buyer_name: string;
+  game_username: string;
+  item_name: string;
+  quantity: number;
   total_diamond: number;
   status: string;
-  buyer_name: string;
-  item_name: string;
-  quantity: number; // NEW: Quantity of items
   deduction_breakdown: Record<string, number>;
+  sending_accounts: Record<string, any>;
   delivery_at: string; // ISO 8601 datetime
   created_at: string;
   updated_at: string;
@@ -73,8 +76,9 @@ export const useCreateComboOrder = () => {
   return useMutation({
     mutationFn: createComboOrder,
     onSuccess: (data) => {
-      // Invalidate accounts query to refresh stock diamonds
+      // Invalidate both accounts and orders queries
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
       return data;
     },
   });

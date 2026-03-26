@@ -18,11 +18,25 @@ interface WDPPrices {
   error?: string;
 }
 
+interface BalanceData {
+  saldo: string;
+  saldo_formatted: string;
+  timestamp: string;
+  status: string;
+}
+
 // WDP Price Card Component
-const WDPPriceCard: React.FC<{ prices: WDPPrices | null; isLoading: boolean }> = ({ prices, isLoading }) => {
-  // Hardcoded cost prices (can be replaced with SKU_PRODUCTS data later)
-  const WDP_BR_COST = 0;
-  const WDP_TR_COST = 0;
+const WDPPriceCard: React.FC<{ 
+  prices: WDPPrices | null; 
+  isLoading: boolean;
+  wdpBrCost: number;
+  wdpTrCost: number;
+  onCostChange?: (type: 'br' | 'tr', value: number) => void;
+}> = ({ prices, isLoading, wdpBrCost, wdpTrCost, onCostChange }) => {
+  const [isEditingBr, setIsEditingBr] = useState(false);
+  const [isEditingTr, setIsEditingTr] = useState(false);
+  const [tempBrCost, setTempBrCost] = useState(String(wdpBrCost));
+  const [tempTrCost, setTempTrCost] = useState(String(wdpTrCost));
 
   const formatRupiah = (value: number | null): string => {
     if (value === null || value === undefined) return 'N/A';
@@ -33,6 +47,28 @@ const WDPPriceCard: React.FC<{ prices: WDPPrices | null; isLoading: boolean }> =
     if (market === null || cost === 0) return '-';
     const margin = ((market - cost) / cost * 100).toFixed(1);
     return `${margin}%`;
+  };
+
+  const handleSaveBrCost = () => {
+    const newCost = parseInt(tempBrCost, 10);
+    if (!isNaN(newCost) && newCost >= 0 && onCostChange) {
+      onCostChange('br', newCost);
+      setIsEditingBr(false);
+    } else {
+      alert('Invalid cost value');
+      setTempBrCost(String(wdpBrCost));
+    }
+  };
+
+  const handleSaveTrCost = () => {
+    const newCost = parseInt(tempTrCost, 10);
+    if (!isNaN(newCost) && newCost >= 0 && onCostChange) {
+      onCostChange('tr', newCost);
+      setIsEditingTr(false);
+    } else {
+      alert('Invalid cost value');
+      setTempTrCost(String(wdpTrCost));
+    }
   };
 
   return (
@@ -79,13 +115,43 @@ const WDPPriceCard: React.FC<{ prices: WDPPrices | null; isLoading: boolean }> =
             <div>
               <p className="text-sm font-semibold text-gray-800 font-sans">Harga Modal WDP_BR</p>
               <p className="text-xs text-gray-600 font-sans mt-1">
-                Margin: {calculateMargin(WDP_BR_COST, prices.brazil)}
+                Margin: {calculateMargin(wdpBrCost, prices.brazil)}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-lg font-semibold text-indigo-700 font-serif">
-                {formatRupiah(WDP_BR_COST)}
-              </p>
+              {isEditingBr ? (
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={tempBrCost}
+                    onChange={(e) => setTempBrCost(e.target.value)}
+                    className="w-24 px-2 py-1 text-sm border border-gray-300 rounded"
+                  />
+                  <button
+                    onClick={handleSaveBrCost}
+                    className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsEditingBr(false);
+                      setTempBrCost(String(wdpBrCost));
+                    }}
+                    className="px-2 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsEditingBr(true)}
+                  className="text-lg font-semibold text-indigo-700 font-serif hover:text-indigo-800 cursor-pointer"
+                  title="Click to edit"
+                >
+                  {formatRupiah(wdpBrCost)}
+                </button>
+              )}
             </div>
           </div>
 
@@ -94,13 +160,43 @@ const WDPPriceCard: React.FC<{ prices: WDPPrices | null; isLoading: boolean }> =
             <div>
               <p className="text-sm font-semibold text-gray-800 font-sans">Harga Modal WDP_TR</p>
               <p className="text-xs text-gray-600 font-sans mt-1">
-                Margin: {calculateMargin(WDP_TR_COST, prices.turkey)}
+                Margin: {calculateMargin(wdpTrCost, prices.turkey)}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-lg font-semibold text-indigo-700 font-serif">
-                {formatRupiah(WDP_TR_COST)}
-              </p>
+              {isEditingTr ? (
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={tempTrCost}
+                    onChange={(e) => setTempTrCost(e.target.value)}
+                    className="w-24 px-2 py-1 text-sm border border-gray-300 rounded"
+                  />
+                  <button
+                    onClick={handleSaveTrCost}
+                    className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsEditingTr(false);
+                      setTempTrCost(String(wdpTrCost));
+                    }}
+                    className="px-2 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsEditingTr(true)}
+                  className="text-lg font-semibold text-indigo-700 font-serif hover:text-indigo-800 cursor-pointer"
+                  title="Click to edit"
+                >
+                  {formatRupiah(wdpTrCost)}
+                </button>
+              )}
             </div>
           </div>
 
@@ -133,6 +229,14 @@ const Digiflazz: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'regular' | 'lunasi'>('regular');
   const [wdpPrices, setWdpPrices] = useState<WDPPrices | null>(null);
   const [wdpLoading, setWdpLoading] = useState(true);
+  
+  // Balance state
+  const [balance, setBalance] = useState<BalanceData | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(true);
+  
+  // Cost prices state
+  const [wdpBrCost, setWdpBrCost] = useState(100000);
+  const [wdpTrCost, setWdpTrCost] = useState(100000);
 
   // Fetch WDP prices on component mount
   useEffect(() => {
@@ -159,6 +263,32 @@ const Digiflazz: React.FC = () => {
     fetchWDPPrices();
   }, []);
 
+  // Fetch balance on component mount
+  useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        const response = await fetch('/api/digiflazz/balance');
+        const data = await response.json();
+        setBalance(data);
+      } catch (error) {
+        console.error('Failed to fetch balance:', error);
+        setBalance(null);
+      } finally {
+        setBalanceLoading(false);
+      }
+    };
+
+    fetchBalance();
+  }, []);
+
+  const handleCostChange = (type: 'br' | 'tr', value: number) => {
+    if (type === 'br') {
+      setWdpBrCost(value);
+    } else {
+      setWdpTrCost(value);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -175,16 +305,40 @@ const Digiflazz: React.FC = () => {
           <p className="text-xs font-semibold text-gray-600 font-sans uppercase tracking-wide mb-3">
             Available Balance
           </p>
-          <p className="text-4xl font-serif font-semibold text-black">
-            Rp 5.000.000
-          </p>
-          <p className="text-xs text-gray-500 font-sans mt-2">
-            Last updated: 16 Mar 2026, 10:30 WIB
-          </p>
+          {balanceLoading ? (
+            <div className="animate-pulse">
+              <div className="h-10 bg-gray-200 rounded w-48 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-64"></div>
+            </div>
+          ) : balance ? (
+            <>
+              <p className="text-4xl font-serif font-semibold text-black">
+                {balance.saldo_formatted}
+              </p>
+              <p className="text-xs text-gray-500 font-sans mt-2">
+                Last updated: {new Date(balance.timestamp).toLocaleString('id-ID')}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-4xl font-serif font-semibold text-gray-400">
+                Saldo tidak tersedia
+              </p>
+              <p className="text-xs text-gray-500 font-sans mt-2">
+                Gagal mengambil data saldo
+              </p>
+            </>
+          )}
         </div>
 
         {/* WDP Price Info Card */}
-        <WDPPriceCard prices={wdpPrices} isLoading={wdpLoading} />
+        <WDPPriceCard 
+          prices={wdpPrices} 
+          isLoading={wdpLoading}
+          wdpBrCost={wdpBrCost}
+          wdpTrCost={wdpTrCost}
+          onCostChange={handleCostChange}
+        />
       </div>
 
       {/* Tab Navigation */}

@@ -43,10 +43,11 @@ class TopupRequest(BaseModel):
 class DigSaldoResponse(BaseModel):
     """Response schema for Digiflazz balance check."""
 
-    status: str
-    saldo: str
-    saldo_formatted: str = ""  # Tambahkan baris ini
-    timestamp: str = ""        # Tambahkan baris ini juga
+    status: str | None = None
+    saldo: str | None = None
+    saldo_formatted: str = ""
+    timestamp: str = ""
+    data: dict | None = None
 
 
 class WDPCheapestResponse(BaseModel):
@@ -228,12 +229,36 @@ async def get_balance() -> DigSaldoResponse:
 
         # CRITICAL: Wrap synchronous call in executor to avoid blocking event loop
         loop = asyncio.get_event_loop()
-        saldo = await loop.run_in_executor(None, digiflazz_service.cek_saldo)
+        saldo_response = await loop.run_in_executor(None, digiflazz_service.cek_saldo)
 
-        logger.info(f"✅ Digiflazz saldo: {saldo}")
+        logger.info(f"✅ Digiflazz saldo: {saldo_response}")
 
-        # LANGSUNG RETURN VARIABELNYA SAJA
-        return saldo
+        # Format saldo if available from data.deposit
+        saldo_value = None
+        if isinstance(saldo_response, dict):
+            # Check if saldo field exists or try to extract from data
+            saldo_value = saldo_response.get("saldo")
+            if not saldo_value and "data" in saldo_response and isinstance(saldo_response["data"], dict):
+                deposit = saldo_response["data"].get("deposit")
+                if deposit is not None:
+                    saldo_value = str(deposit)
+
+        # Format currency
+        saldo_formatted = ""
+        if saldo_value:
+            try:
+                saldo_int = int(str(saldo_value).replace(".", "").replace(",", ""))
+                saldo_formatted = f"Rp {saldo_int:,}".replace(",", ".")
+            except (ValueError, TypeError):
+                saldo_formatted = f"Rp {saldo_value}"
+
+        return {
+            "status": saldo_response.get("status") if isinstance(saldo_response, dict) else None,
+            "saldo": saldo_value,
+            "saldo_formatted": saldo_formatted,
+            "timestamp": saldo_response.get("timestamp", ""),
+            "data": saldo_response.get("data") if isinstance(saldo_response, dict) else None,
+        }
 
     except Exception as e:
         logger.error(f"❌ Error checking balance: {str(e)}")

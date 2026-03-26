@@ -143,6 +143,14 @@ async def create_combo_order(
     for account in accounts_to_deduct:
         session.add(account)
 
+    # Prepare sending_accounts with account details
+    sending_accounts: dict[str, dict] = {}
+    for account in accounts_to_deduct:
+        sending_accounts[str(account.id)] = {
+            "name": account.name,
+            "deduction": deduction_breakdown[account.name],
+        }
+
     # Calculate delivery_at based on 15:00 WIB cutoff
     delivery_at = calculate_delivery_at(datetime.utcnow())
 
@@ -157,6 +165,7 @@ async def create_combo_order(
         quantity=quantity,
         status="PENDING",
         deduction_breakdown=deduction_breakdown,
+        sending_accounts=sending_accounts,
         delivery_at=delivery_at,
     )
     session.add(order)
