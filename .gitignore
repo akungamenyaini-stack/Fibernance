@@ -15,3 +15,5 @@ __pycache__/
 # Build files
 dist/
 build/
+
+backend/venv_fresh/

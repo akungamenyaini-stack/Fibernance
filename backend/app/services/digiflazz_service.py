@@ -16,7 +16,6 @@ import hashlib
 import os
 import threading
 import time
-import logging
 from datetime import datetime
 from typing import Optional
 
@@ -25,7 +24,6 @@ import requests
 from dotenv import load_dotenv
 load_dotenv()
 
-logger = logging.getLogger(__name__)
 
 class DigiflazzService:
     """Service for Digiflazz API integration (2026 specs compliant)."""
@@ -115,15 +113,12 @@ class DigiflazzService:
         Returns:
             dict: Response with balance, formatted field, and timestamp
 
-        Expected Digiflazz response format:
-            {"data": {"deposit": 8300}}
-
-        Returned response format:
+        Example response:
             {
-                "status": "success",
-                "saldo": "8300",
-                "saldo_formatted": "Rp 8.300",
-                "timestamp": "2026-03-17T10:30:45"
+                "saldo": "50000000",
+                "saldo_formatted": "Rp 50.000.000",
+                "timestamp": "2026-03-17T10:30:45",
+                "status": "success"
             }
 
         Raises:
@@ -147,34 +142,13 @@ class DigiflazzService:
             )
             response.raise_for_status()
             
-            api_response = response.json()
-
-            # --- TAMBAHKAN VALIDASI INI ---
-            # Jika response.json() mengembalikan string, berarti ada masalah 
-            # pada format data yang dikirim (kemungkinan error dari proxy/API)
-            if isinstance(api_response, str):
-                logger.error(f"❌ API mengirim teks mentah, bukan objek JSON: {api_response}")
-                # Kita ubah menjadi dict kosong agar baris selanjutnya tidak crash
-                api_response = {} 
+            result = response.json()
             
-            # Validasi jika data tidak ada (biasanya karena IP ditolak/pembatasan akses)
-            if not api_response.get("data"):
-                error_msg = api_response.get("message", "Data 'data' tidak ditemukan dalam respon")
-                logger.warning(f"⚠️ Respon tidak lengkap dari Digiflazz: {api_response}")
-            # ------------------------------
+            # Add formatted saldo and timestamp
+            if "saldo" in result:
+                result["saldo_formatted"] = self._format_currency(result["saldo"])
             
-            # Extract deposit value from nested response structure
-            # Digiflazz returns: {"data": {"deposit": 8300}}
-            deposit_value = api_response.get("data", {}).get("deposit", 0)
-            saldo_str = str(deposit_value)
-            
-            # Build response in expected format
-            result = {
-                "status": "success",
-                "saldo": saldo_str,
-                "saldo_formatted": self._format_currency(saldo_str),
-                "timestamp": datetime.now().isoformat(),
-            }
+            result["timestamp"] = datetime.now().isoformat()
             
             return result
 

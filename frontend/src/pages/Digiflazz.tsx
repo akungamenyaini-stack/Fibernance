@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react'; // <-- Tambahkan useEffect
+import React, { useState } from 'react';
 import { useAccounts } from '../api/accounts';
-import apiClient from '../api/client'; // <-- Tambahkan ini untuk memanggil backend
-
 
 // SKU options
 const SKU_PRODUCTS = [
@@ -13,32 +11,6 @@ const SKU_PRODUCTS = [
 const Digiflazz: React.FC = () => {
   const { data: accounts, isLoading } = useAccounts();
   const [activeTab, setActiveTab] = useState<'regular' | 'lunasi'>('regular');
-
-// --- TAMBAHKAN KODE INI ---
-  const [balance, setBalance] = useState<string>('Loading...');
-  const [lastUpdated, setLastUpdated] = useState<string>('');
-
-  useEffect(() => {
-    const fetchBalance = async () => {
-      try {
-        const response = await apiClient.get('/api/digiflazz/balance');
-        // Gunakan saldo_formatted jika ada, jika tidak pakai saldo biasa
-        setBalance(response.data.saldo_formatted || `Rp ${response.data.saldo}`);
-        
-        if (response.data.timestamp) {
-          const date = new Date(response.data.timestamp);
-          // Format tanggal jadi cantik ala Indonesia
-          setLastUpdated(`Last updated: ${date.toLocaleString('id-ID')} WIB`);
-        }
-      } catch (error) {
-        console.error("Gagal mengambil saldo Digiflazz", error);
-        setBalance('Gagal memuat saldo');
-      }
-    };
-
-    fetchBalance();
-  }, []);
-  // -------------------------
 
   return (
     <div className="min-h-screen bg-white">
@@ -57,10 +29,10 @@ const Digiflazz: React.FC = () => {
             Available Balance
           </p>
           <p className="text-4xl font-serif font-semibold text-black">
-            {balance}
+            Rp 5.000.000
           </p>
           <p className="text-xs text-gray-500 font-sans mt-2">
-            {lastUpdated}
+            Last updated: 16 Mar 2026, 10:30 WIB
           </p>
         </div>
       </div>
