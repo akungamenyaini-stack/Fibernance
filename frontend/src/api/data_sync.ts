@@ -29,6 +29,7 @@ export interface ImportResult {
   orders_deleted: number;
   orders_added: number;
   errors: string[];
+  backup_created?: boolean;
 }
 
 /**
@@ -37,7 +38,7 @@ export interface ImportResult {
 export const exportData = async (
   exportType: 'inventory' | 'orders' | 'both'
 ): Promise<ExportData> => {
-  const response = await apiClient.post(`/data/export?export_type=${exportType}`);
+  const response = await apiClient.post(`/api/data/export?export_type=${exportType}`);
   return response.data;
 };
 
@@ -51,7 +52,7 @@ export const previewImport = async (
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await apiClient.post(`/data/import-preview?import_type=${importType}`, formData, {
+  const response = await apiClient.post(`/api/data/import-preview?import_type=${importType}`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -69,7 +70,7 @@ export const confirmImport = async (
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await apiClient.post(`/data/import-confirm?import_type=${importType}`, formData, {
+  const response = await apiClient.post(`/api/data/import-confirm?import_type=${importType}`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

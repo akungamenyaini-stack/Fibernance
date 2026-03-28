@@ -68,6 +68,31 @@ const DataSync: React.FC = () => {
     }
   };
 
+  // Helper: Auto-backup current data
+  const createBackupAndDownload = async () => {
+    try {
+      // Export current data (both inventory and orders)
+      const backupData = await exportMutation.mutateAsync('both');
+      
+      // Create JSON file and download
+      const jsonString = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `fibernance_backup_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      return true;
+    } catch (error) {
+      console.error('Backup failed:', error);
+      return false;
+    }
+  };
+
   // Handle Confirm Import
   const handleConfirmImport = async () => {
     if (!selectedFile) {
@@ -83,11 +108,27 @@ const DataSync: React.FC = () => {
     if (!confirmed) return;
 
     try {
+      // Step 1: Create backup and download
+      alert('📥 Creating backup of current data...');
+      const backupSuccess = await createBackupAndDownload();
+      
+      if (!backupSuccess) {
+        alert('⚠️ Warning: Backup creation failed, but proceeding with import. Make sure you have a copy of your data!');
+      }
+
+      // Step 2: Execute import
       const result = await confirmMutation.mutateAsync({
         file: selectedFile,
         importType,
       });
-      setImportResult(result);
+      
+      // Mark backup status in result
+      const resultWithBackup = {
+        ...result,
+        backup_created: backupSuccess,
+      };
+      
+      setImportResult(resultWithBackup as any);
       setShowPreviewModal(false);
       setShowResultModal(true);
       setSelectedFile(null);
@@ -289,8 +330,20 @@ const DataSync: React.FC = () => {
             <div className="p-6 space-y-4">
               <p className="text-gray-900">{importResult.message}</p>
 
-              {importResult.success && (
+              {importResult.backup_created && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-blue-900">✅ Backup Created</p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    A backup of your previous data has been automatically downloaded as: 
+                    <br/>
+                    <code className="font-mono text-blue-600">fibernance_backup_[timestamp].json</code>
+                  </p>
+                </div>
+              )}
+
+            {importResult.success && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-2 text-sm">
+                  <p className="font-semibold text-green-900">✅ Import Details:</p>
                   {importResult.accounts_added > 0 && (
                     <p className="text-green-800">✅ {importResult.accounts_added} accounts imported</p>
                   )}
