@@ -677,69 +677,146 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ order, onClose }) => {
     }
   };
 
+  // Format date for receipt - compact format
+  // ID: DD/M/YYYY, HH.mm WIB (WIB time)
+  const formatDateForReceipt = (dateString: string | undefined): string => {
+    if (!dateString) return 'N/A';
+    
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${day}/${month}/${year}, ${hours}.${minutes} WIB`;
+  };
+
+  // Format date for receipt EN - compact format
+  // EN: M/DD/YYYY, HH.mm UTC (UTC time)
+  const formatDateForReceiptEN = (dateString: string | undefined): string => {
+    if (!dateString) return 'N/A';
+    
+    // Parse as UTC date (backend sends UTC)
+    const utcDate = new Date(dateString);
+    
+    // For UTC, use UTC components directly
+    let day = utcDate.getUTCDate();
+    let month = utcDate.getUTCMonth() + 1;
+    let year = utcDate.getUTCFullYear();
+    let hours = utcDate.getUTCHours();
+    const minutes = utcDate.getUTCMinutes();
+    
+    const hoursStr = String(hours).padStart(2, '0');
+    const minutesStr = String(minutes).padStart(2, '0');
+    
+    return `${month}/${day}/${year}, ${hoursStr}.${minutesStr} UTC`;
+  };
+
+  // Convert WIB datetime to UTC format for receipt display
+  // Backend sends naive ISO datetime in WIB (e.g., "2026-04-05T15:00:00")
+  // Convert to UTC by subtracting 7 hours
+  const formatDateUTC = (wibDateString: string | undefined): string => {
+    if (!wibDateString) return 'N/A';
+    
+    // Parse WIB datetime (naive, treat as local)
+    const wibDate = new Date(wibDateString);
+    
+    // Extract WIB components
+    let dayNum = wibDate.getDate();
+    let monthNum = wibDate.getMonth();
+    let year = wibDate.getFullYear();
+    let dayOfWeek = wibDate.getDay();
+    let hours = wibDate.getHours();
+    const minutes = wibDate.getMinutes();
+    const seconds = wibDate.getSeconds();
+    
+    // Convert WIB to UTC by subtracting 7 hours
+    hours -= 7;
+    
+    // Handle day underflow (if hours < 0)
+    if (hours < 0) {
+      hours += 24;
+      dayOfWeek = (dayOfWeek - 1 + 7) % 7; // Previous day of week
+      dayNum -= 1;
+      
+      // Handle month/year underflow
+      if (dayNum < 1) {
+        monthNum -= 1;
+        if (monthNum < 0) {
+          monthNum = 11;
+          year -= 1;
+        }
+        dayNum = new Date(year, monthNum + 1, 0).getDate();
+      }
+    }
+    
+    const hoursStr = hours.toString().padStart(2, '0');
+    const minutesStr = minutes.toString().padStart(2, '0');
+    const secondsStr = seconds.toString().padStart(2, '0');
+    
+    if (language === 'id') {
+      const daysID = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const monthsID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      return `${daysID[dayOfWeek]}, ${dayNum} ${monthsID[monthNum]} ${year} ${hoursStr}:${minutesStr}:${secondsStr} UTC`;
+    } else {
+      const daysEN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const monthsEN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      return `${daysEN[dayOfWeek]}, ${dayNum} ${monthsEN[monthNum]} ${year} ${hoursStr}:${minutesStr}:${secondsStr} UTC`;
+    }
+  };
+
   const getReceiptText = (): string => {
-    const divider = '═══════════════════════════';
-    const isInvoice = mode === 'invoice';
+    const divider = '==============================';
+    
+    // Build sender info with numbering for multiple accounts
+    const senderEntries = Object.entries(order.sending_accounts);
+    const senderInfoLines = senderEntries.map((entry, index) => {
+      const accountData = entry[1] as { name: string; game_id: string; zone: string; deduction: number };
+      const accountName = accountData.name;
+      const gameId = accountData.game_id || 'N/A';
+      const zone = accountData.zone || 'N/A';
+      const lineNum = index + 1;
+      
+      return `${lineNum}. Nick : ${accountName}\n   Id     : ${gameId} (${zone})`;
+    }).join('\n');
 
     if (language === 'id') {
       return `${divider}
-FIBERNANCE - ${isInvoice ? 'INVOICE' : 'STRUK PEMBELIAN'}
+      DETAIL PESANAN
 ${divider}
 
-${isInvoice ? 'STATUS PESANAN: Menunggu Pengiriman' : 'STATUS PESANAN: Pesanan Selesai'}
+DATA PESANAN
+No.       : ${order.invoice_ref}
+Item      : ${order.quantity}x ${order.item_name || 'N/A'}
+Target    : ${order.target_id} (${order.server_id})
+Tgl kirim : ${formatDateForReceipt(order.delivery_at)}
 
-NOMOR PESANAN: ${order.invoice_ref}
-TANGGAL: ${formatDate(order.created_at)}
-ITEM: ${order.quantity}x ${order.item_name || 'N/A'}
-PEMBELI: ${order.buyer_name || 'N/A'}
-
-TARGET PEMAIN
-ID Pemain: ${order.target_id}
-Nickname: ${order.buyer_name || 'N/A'}
-Zone: ${order.server_id}
-
-RINCIAN PEMBAYARAN
-Total Diamond: ${order.total_diamond.toLocaleString()} DM
-
-SUMBER DANA
-${Object.entries(order.deduction_breakdown).map(([name, amount]) => `${name}: ${amount.toLocaleString()} DM`).join('\n')}
-
-ESTIMASI PENGIRIMAN
-${order.delivery_at ? formatDate(order.delivery_at) : 'N/A'}
+INFO PENGIRIM
+${senderInfoLines}
 
 ${divider}
-Simpan struk ini selama 7 hari.
-Terima kasih!
+PENTING:
+Silakan tambahkan akun diatas sebagai teman (add friend).
 ${divider}`;
     } else {
       return `${divider}
-FIBERNANCE - ${isInvoice ? 'INVOICE' : 'RECEIPT'}
+      ORDER DETAILS
 ${divider}
 
-${isInvoice ? 'ORDER STATUS: Awaiting Delivery' : 'ORDER STATUS: Order Completed'}
+ORDER DATA
+No.       : ${order.invoice_ref}
+Item      : ${order.quantity}x ${order.item_name || 'N/A'}
+Target    : ${order.target_id} (${order.server_id})
+Ship date : ${formatDateForReceiptEN(order.delivery_at)}
 
-ORDER NUMBER: ${order.invoice_ref}
-DATE: ${formatDate(order.created_at)}
-ITEM: ${order.quantity}x ${order.item_name || 'N/A'}
-BUYER: ${order.buyer_name || 'N/A'}
-
-TARGET PLAYER
-Player ID: ${order.target_id}
-Nickname: ${order.buyer_name || 'N/A'}
-Zone: ${order.server_id}
-
-PAYMENT DETAILS
-Total Diamond: ${order.total_diamond.toLocaleString()} DM
-
-PAYMENT SOURCE
-${Object.entries(order.deduction_breakdown).map(([name, amount]) => `${name}: ${amount.toLocaleString()} DM`).join('\n')}
-
-ESTIMATED DELIVERY
-${order.delivery_at ? formatDate(order.delivery_at) : 'N/A'}
+SENDER INFO
+${senderInfoLines}
 
 ${divider}
-Keep this receipt for 7 days.
-Thank you!
+IMPORTANT:
+Please add the accounts above
+as friends to deliver gifts.
 ${divider}`;
     }
   };

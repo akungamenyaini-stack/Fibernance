@@ -226,6 +226,8 @@ async def create_combo_order(
     for account in accounts_to_deduct:
         sending_accounts[str(account.id)] = {
             "name": account.name,
+            "game_id": account.game_id,
+            "zone": account.zone,
             "deduction": deduction_breakdown[account.name],
         }
 
