@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import json
+from datetime import datetime
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -10,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.core.database import get_session
-from app.core.models import Account, TopupHistory, TopupHistoryResponse
+from app.core.models import Account, TopupHistory, TopupHistoryResponse, CostPrice, CostPriceUpdate, CostPriceResponse
 from app.services.digiflazz_service import DigiflazzService
 from pydantic import BaseModel, Field
 
@@ -61,6 +62,16 @@ class WDPCheapestResponse(BaseModel):
     error: str | None = None
 
 
+class WDPModalResponse(BaseModel):
+    """Response schema for WDP modal (cost) prices from Digiflazz account."""
+
+    wdp_br: int | None = None
+    wdp_tr: int | None = None
+    timestamp: str = ""
+    from_cache: bool = False
+    error: str | None = None
+
+
 @router.get("/wdp-cheapest", response_model=WDPCheapestResponse)
 async def get_wdp_cheapest() -> WDPCheapestResponse:
     """
@@ -105,6 +116,55 @@ async def get_wdp_cheapest() -> WDPCheapestResponse:
             "min": None,
             "cached": False,
             "cache_age": 0,
+            "error": str(e),
+        }
+
+
+@router.get("/wdp-modal", response_model=WDPModalResponse)
+async def get_wdp_modal_prices() -> WDPModalResponse:
+    """
+    Get WDP_BR and WDP_TR modal (cost) prices from Digiflazz account product list.
+    
+    This endpoint fetches the actual product prices set on your Digiflazz account
+    for WDP Brasil and WDP Turkey products. These are the prices to use for 
+    calculating margins and profit.
+    
+    Sources prices from:
+    - Digiflazz API /product endpoint
+    - Uses 5-minute caching per Digiflazz rate limits
+    
+    Returns:
+        WDPModalResponse: Modal prices for WDP_BR and WDP_TR from Digiflazz
+        
+    Example response:
+        {
+            "wdp_br": 85000,
+            "wdp_tr": 92000,
+            "timestamp": "2026-03-28T12:35:00",
+            "from_cache": true,
+            "error": null
+        }
+    """
+    try:
+        logger.info("Fetching WDP modal prices from Digiflazz product list...")
+        
+        # Wrap synchronous call in executor to avoid blocking event loop
+        loop = asyncio.get_event_loop()
+        modal_prices = await loop.run_in_executor(
+            None,
+            digiflazz_service.get_wdp_modal_prices,
+        )
+        
+        logger.info(f"✅ WDP modal prices: WDP_BR={modal_prices.get('wdp_br')}, WDP_TR={modal_prices.get('wdp_tr')}")
+        return modal_prices
+    
+    except Exception as e:
+        logger.error(f"❌ Error fetching WDP modal prices: {str(e)}")
+        return {
+            "wdp_br": None,
+            "wdp_tr": None,
+            "timestamp": datetime.now().isoformat(),
+            "from_cache": False,
             "error": str(e),
         }
 
@@ -324,3 +384,130 @@ async def get_topup_by_id(
         raise HTTPException(status_code=404, detail="Topup not found")
 
     return topup
+
+
+# ====== COST PRICE ENDPOINTS ======
+
+
+@router.get("/cost-prices", response_model=list[CostPriceResponse])
+async def get_cost_prices(
+    session: AsyncSession = Depends(get_session),
+) -> list[CostPriceResponse]:
+    """
+    Get all cost prices for different product types.
+
+    Returns:
+        list[CostPriceResponse]: List of cost prices (WDP_BR, WDP_TR, etc.)
+
+    Example response:
+        [
+            {"type": "WDP_BR", "cost_price": 85000, "created_at": "...", "updated_at": "..."},
+            {"type": "WDP_TR", "cost_price": 90000, "created_at": "...", "updated_at": "..."}
+        ]
+    """
+
+    try:
+        stmt = select(CostPrice).order_by(CostPrice.type)
+        result = await session.execute(stmt)
+        cost_prices = result.scalars().all()
+
+        logger.info(f"✅ Retrieved {len(cost_prices)} cost prices")
+        return cost_prices
+
+    except Exception as e:
+        logger.error(f"❌ Error retrieving cost prices: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve cost prices: {str(e)}")
+
+
+@router.get("/cost-prices/{price_type}", response_model=CostPriceResponse)
+async def get_cost_price(
+    price_type: str,
+    session: AsyncSession = Depends(get_session),
+) -> CostPriceResponse:
+    """
+    Get cost price for a specific product type.
+
+    Args:
+        price_type: Product type (e.g., WDP_BR, WDP_TR)
+        session: Database session
+
+    Returns:
+        CostPriceResponse: Cost price data
+
+    Raises:
+        HTTPException: If cost price not found
+    """
+
+    try:
+        stmt = select(CostPrice).where(CostPrice.type == price_type)
+        result = await session.execute(stmt)
+        cost_price = result.scalars().first()
+
+        if not cost_price:
+            logger.warning(f"⚠️  Cost price not found for type: {price_type}")
+            raise HTTPException(status_code=404, detail=f"Cost price not found for type: {price_type}")
+
+        logger.info(f"✅ Retrieved cost price for {price_type}: Rp {cost_price.cost_price}")
+        return cost_price
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error retrieving cost price {price_type}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve cost price: {str(e)}")
+
+
+@router.put("/cost-prices/{price_type}", response_model=CostPriceResponse)
+async def update_cost_price(
+    price_type: str,
+    request: CostPriceUpdate,
+    session: AsyncSession = Depends(get_session),
+) -> CostPriceResponse:
+    """
+    Update cost price for a product type.
+    If type doesn't exist, create it.
+
+    Args:
+        price_type: Product type (e.g., WDP_BR, WDP_TR)
+        request: CostPriceUpdate with new cost_price value
+        session: Database session
+
+    Returns:
+        CostPriceResponse: Updated cost price data
+
+    Raises:
+        HTTPException: If update fails
+    """
+
+    try:
+        # Try to find existing cost price
+        stmt = select(CostPrice).where(CostPrice.type == price_type)
+        result = await session.execute(stmt)
+        cost_price = result.scalars().first()
+
+        if cost_price:
+            # Update existing
+            cost_price.cost_price = request.cost_price
+            cost_price.updated_at = datetime.utcnow()
+            session.add(cost_price)
+            await session.commit()
+            await session.refresh(cost_price)
+            logger.info(f"✅ Updated cost price for {price_type}: Rp {cost_price.cost_price}")
+        else:
+            # Create new
+            cost_price = CostPrice(
+                type=price_type,
+                cost_price=request.cost_price,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
+            )
+            session.add(cost_price)
+            await session.commit()
+            await session.refresh(cost_price)
+            logger.info(f"✅ Created new cost price for {price_type}: Rp {cost_price.cost_price}")
+
+        return cost_price
+
+    except Exception as e:
+        logger.error(f"❌ Error updating cost price {price_type}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update cost price: {str(e)}")

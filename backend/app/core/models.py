@@ -391,3 +391,59 @@ class TopupHistoryResponse(SQLModel):
     response_payload: Optional[str]
     created_at: datetime
     updated_at: datetime
+
+
+class CostPrice(SQLModel, table=True):
+    """Store cost prices for different product types (e.g., WDP_BR, WDP_TR).
+    
+    Used to track our internal pricing for margin calculation against market prices.
+    Allows dynamic updates without redeploying.
+    """
+
+    __tablename__ = "cost_prices"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    type: str = Field(
+        index=True,
+        unique=True,
+        max_length=50,
+        description="Product type identifier (e.g., WDP_BR, WDP_TR, ML_86)",
+    )
+    cost_price: int = Field(
+        default=0,
+        ge=0,
+        description="Our internal cost price in IDR",
+    )
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="Cost price creation timestamp",
+    )
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="Last update timestamp",
+    )
+
+    class Config:
+        """SQLModel config."""
+
+        json_schema_extra = {
+            "example": {
+                "type": "WDP_BR",
+                "cost_price": 85000,
+            }
+        }
+
+
+class CostPriceUpdate(SQLModel):
+    """Schema for updating a cost price."""
+
+    cost_price: int = Field(ge=0)
+
+
+class CostPriceResponse(SQLModel):
+    """Schema for cost price API responses."""
+
+    type: str
+    cost_price: int
+    created_at: datetime
+    updated_at: datetime

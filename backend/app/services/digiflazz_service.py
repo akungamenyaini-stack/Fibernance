@@ -357,17 +357,114 @@ class DigiflazzService:
                 "error": error_msg,
             }
 
+    def get_wdp_modal_prices(self) -> dict:
+        """
+        Get WDP_BR and WDP_TR modal (cost) prices from Digiflazz price list.
+        
+        This fetches the price list from Digiflazz and extracts prices for:
+        - WDP_BR: Weekly Diamond Pass Brazil (buyer_sku_code)
+        - WDP_TR: Weekly Diamond Pass Turkey (buyer_sku_code)
+        
+        These are the ACTUAL prices set on the Digiflazz account for your prepaid products.
+        Uses 5-minute caching to respect Digiflazz rate limits and recommendations.
+        
+        Returns:
+            dict: Contains:
+                - wdp_br (int|null): Price for WDP_BR from Digiflazz
+                - wdp_tr (int|null): Price for WDP_TR from Digiflazz
+                - timestamp (str): When prices were fetched
+                - from_cache (bool): Whether data came from cache
+                - error (str|null): Error message if fetch failed
+                
+        Example response:
+            {
+                "wdp_br": 85000,
+                "wdp_tr": 92000,
+                "timestamp": "2026-03-28T12:30:45",
+                "from_cache": True,
+                "error": None
+            }
+        """
+        try:
+            # Get price list (with 5-minute cache built-in)
+            price_list = self.get_product_list()
+            
+            result = {
+                "wdp_br": None,
+                "wdp_tr": None,
+                "timestamp": datetime.now().isoformat(),
+                "from_cache": price_list.get("from_cache", False),
+                "error": None,
+            }
+            
+            # Extract products from response
+            # API response format: {"data": [{product objects}]}
+            products = price_list.get("data", [])
+            
+            if not isinstance(products, list):
+                result["error"] = "Invalid response format from Digiflazz"
+                return result
+            
+            # Parse products to find WDP_BR and WDP_TR by buyer_sku_code
+            for product in products:
+                if not isinstance(product, dict):
+                    continue
+                
+                # Get buyer_sku_code - this is how we identify the product
+                sku_code = (product.get("buyer_sku_code", "") or "").upper().strip()
+                
+                # Get product price
+                price = product.get("price")
+                
+                # Parse price
+                try:
+                    if isinstance(price, str):
+                        price = int(price.replace(".", "").replace(",", ""))
+                    else:
+                        price = int(price) if price else None
+                    
+                    # Match product SKU code
+                    if sku_code == "WDP_BR" and price:
+                        result["wdp_br"] = price
+                    elif sku_code == "WDP_TR" and price:
+                        result["wdp_tr"] = price
+                except (ValueError, TypeError, AttributeError):
+                    # Skip products with invalid prices
+                    continue
+            
+            # Log results
+            if result["wdp_br"] or result["wdp_tr"]:
+                cache_status = " (cached)" if result["from_cache"] else " (fresh)"
+                print(f"✅ WDP prices from Digiflazz{cache_status}: BR=Rp {result['wdp_br']}, TR=Rp {result['wdp_tr']}")
+            else:
+                print(f"⚠️  WDP products not found in Digiflazz price list. Available SKU codes: {[p.get('buyer_sku_code') for p in products[:5]]}")
+            
+            return result
+        
+        except Exception as e:
+            return {
+                "wdp_br": None,
+                "wdp_tr": None,
+                "timestamp": datetime.now().isoformat(),
+                "from_cache": False,
+                "error": f"Failed to extract WDP prices: {str(e)}",
+            }
+
     def get_product_list(self) -> dict:
         """
-        Get list of available products from Digiflazz with 5-minute caching.
+        Get price list from Digiflazz with 5-minute caching.
 
-        API Endpoint: https://api.digiflazz.com/v1/product
+        API Endpoint: https://api.digiflazz.com/v1/price-list
         Method: POST
+        
+        For prepaid products (games like MLBB).
 
         Rate Limit: 5-minute cache (300 seconds) with thread-safe access
+        Note: Digiflazz recommends caching price list and updating periodically
 
         Returns:
             dict: Response from Digiflazz API containing product list (from cache or fresh)
+                  Data structure: {"data": [{"buyer_sku_code": "WDP_BR", "price": 85000, ...}, ...]}
 
         Raises:
             Exception: If API is down or request times out
@@ -387,17 +484,17 @@ class DigiflazzService:
                     }
             
             # Cache expired or empty, fetch fresh data
-            ref_id = "produk"
-            sign = self._generate_sign(ref_id)
+            # Note: sign formula is md5(username + api_key + "pricelist") NOT ref_id
+            sign = hashlib.md5(f"{self.username}{self.api_key}pricelist".encode()).hexdigest()
 
             payload = {
-                "cmd": "list-produk",
+                "cmd": "prepaid",
                 "username": self.username,
                 "sign": sign,
             }
 
             response = requests.post(
-                f"{self.BASE_URL}/product",
+                f"{self.BASE_URL}/price-list",
                 json=payload,
                 timeout=self.TIMEOUT,
                 proxies=self.proxies,
