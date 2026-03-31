@@ -91,7 +91,7 @@ const Cashier: React.FC = () => {
     if (!parserText.trim()) {
       setParserStatus({
         type: 'error',
-        message: '❌ Paste raw Itemku text terlebih dahulu!',
+        message: 'Paste Itemku raw text before running the parser.',
       });
       return;
     }
@@ -113,10 +113,10 @@ const Cashier: React.FC = () => {
     if (orderIdMatch && orderIdMatch[1]) {
       parsedOrderId = orderIdMatch[1].trim();
       successCount++;
-      console.log('✓ Order ID:', parsedOrderId);
+      console.log('Parsed order ID:', parsedOrderId);
     } else {
       errorCount++;
-      console.warn('✗ Order ID tidak ditemukan');
+      console.warn('Order ID was not found in the parser input.');
     }
 
     // 1. Item Name: "Starlight Card" (sebelum "Lihat Dagangan")
@@ -124,14 +124,14 @@ const Cashier: React.FC = () => {
     if (itemNameMatch && itemNameMatch[1]) {
       parsedItemName = itemNameMatch[1].trim();
       successCount++;
-      console.log('✓ Item Name:', parsedItemName);
+      console.log('Parsed item name:', parsedItemName);
       // Auto-calc Starlight with quantity
       if (parsedItemName.toLowerCase().includes('starlight')) {
         setTotalDiamond(300 * quantity);
       }
     } else {
       errorCount++;
-      console.warn('✗ Item Name tidak ditemukan');
+      console.warn('Item name was not found in the parser input.');
     }
 
     // 2. User ID (Target ID): Setelah "User ID" + newline/spaces + digits
@@ -139,10 +139,10 @@ const Cashier: React.FC = () => {
     if (userIdMatch && userIdMatch[1]) {
       parsedUserId = userIdMatch[1].trim();
       successCount++;
-      console.log('✓ User ID:', parsedUserId);
+      console.log('Parsed user ID:', parsedUserId);
     } else {
       errorCount++;
-      console.warn('✗ User ID tidak ditemukan');
+      console.warn('User ID was not found in the parser input.');
     }
 
     // 3. Zone ID: Setelah "Zone ID" baris baru
@@ -150,10 +150,10 @@ const Cashier: React.FC = () => {
     if (zoneIdMatch && zoneIdMatch[1]) {
       parsedZoneId = zoneIdMatch[1].trim();
       successCount++;
-      console.log('✓ Zone ID:', parsedZoneId);
+      console.log('Parsed zone ID:', parsedZoneId);
     } else {
       errorCount++;
-      console.warn('✗ Zone ID tidak ditemukan');
+      console.warn('Zone ID was not found in the parser input.');
     }
 
     // 4. Username: Setelah "Username" baris baru
@@ -161,10 +161,10 @@ const Cashier: React.FC = () => {
     if (usernameMatch && usernameMatch[1]) {
       parsedUsername = usernameMatch[1].trim();
       successCount++;
-      console.log('✓ Username:', parsedUsername);
+      console.log('Parsed username:', parsedUsername);
     } else {
       errorCount++;
-      console.warn('✗ Username tidak ditemukan');
+      console.warn('Username was not found in the parser input.');
     }
 
     // 5. Nama Pembeli: Setelah "Pembeli:" newline/spaces
@@ -172,10 +172,10 @@ const Cashier: React.FC = () => {
     if (purchaserMatch && purchaserMatch[1]) {
       parsedPurchaserName = purchaserMatch[1].trim();
       successCount++;
-      console.log('✓ Nama Pembeli:', parsedPurchaserName);
+      console.log('Parsed purchaser name:', parsedPurchaserName);
     } else {
       errorCount++;
-      console.warn('✗ Nama Pembeli tidak ditemukan');
+      console.warn('Purchaser name was not found in the parser input.');
     }
 
     // Set semua nilai ke store/state sekaligus (bukan terpisah)
@@ -189,17 +189,17 @@ const Cashier: React.FC = () => {
     if (successCount === 6) {
       setParserStatus({
         type: 'success',
-        message: `✅ Parser selesai! Semua 6 data berhasil diekstrak.`,
+        message: 'Parser completed. All 6 fields were extracted successfully.',
       });
     } else if (successCount > 0) {
       setParserStatus({
         type: 'partial',
-        message: `⚠️ Parser selesai. ${successCount}/6 data berhasil diekstrak. ${errorCount} data tidak ditemukan.`,
+        message: `Parser completed with partial results. ${successCount}/6 fields were extracted and ${errorCount} were missing.`,
       });
     } else {
       setParserStatus({
         type: 'error',
-        message: `❌ Parser gagal. Tidak ada data yang berhasil diekstrak. Pastikan format Itemku benar.`,
+        message: 'Parser failed. No supported fields were extracted. Check the Itemku text format.',
       });
     }
   };
@@ -250,12 +250,12 @@ const Cashier: React.FC = () => {
         // created_at omitted - backend uses datetime.now() for WIB timezone
       });
 
-      alert('✅ Order processed successfully!');
+      alert('Order processed successfully.');
       resetCashier();
     } catch (err: any) {
       const errorMessage =
         err.response?.data?.detail || err.message || 'Unknown error occurred';
-      alert(`❌ Error: ${errorMessage}`);
+      alert(`Error: ${errorMessage}`);
     }
   };
 
@@ -291,18 +291,17 @@ const Cashier: React.FC = () => {
                   className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">📋</span>
                     <span className="font-semibold text-black font-sans">
                       Itemku Parser
                     </span>
                     {parserStatus.type === 'success' && (
-                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-none">
-                        ✓ Success
+                      <span className="status-badge status-badge-success">
+                        Success
                       </span>
                     )}
                     {parserStatus.type === 'partial' && (
-                      <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-none">
-                        ⚠ Partial
+                      <span className="status-badge status-badge-neutral">
+                        Partial
                       </span>
                     )}
                   </div>
@@ -329,7 +328,7 @@ const Cashier: React.FC = () => {
                     <textarea
                       value={parserText}
                       onChange={(e) => setParserText(e.target.value)}
-                      placeholder="Paste raw text dari Itemku di sini..."
+                      placeholder="Paste Itemku raw text here..."
                       className="w-full bg-white text-sm text-black font-sans py-2 px-3 border border-gray-300 rounded-none focus:border-black focus:outline-none transition-colors resize-none h-20"
                     />
 
@@ -340,7 +339,7 @@ const Cashier: React.FC = () => {
                         onClick={handleParseButtonClick}
                         className="flex-1 bg-black text-white font-sans font-semibold py-2 rounded-none transition-all hover:opacity-90 active:scale-95"
                       >
-                        Parse Itemku
+                        Parse Text
                       </button>
                       <button
                         type="button"
@@ -356,21 +355,22 @@ const Cashier: React.FC = () => {
 
                     {/* Parser Status Message */}
                     {parserStatus.type !== 'idle' && (
-                      <div
-                        className={`p-3 rounded-none text-xs font-sans ${
+                      <div className="border border-gray-200 bg-gray-50 p-3 rounded-none text-xs font-sans text-black">
+                        <p className={`inline-flex items-center px-3 py-1 text-[10px] font-semibold uppercase tracking-wide rounded-none border ${
                           parserStatus.type === 'success'
-                            ? 'bg-green-50 border border-green-300 text-green-700'
-                            : parserStatus.type === 'partial'
-                            ? 'bg-yellow-50 border border-yellow-300 text-yellow-700'
-                            : 'bg-red-50 border border-red-300 text-red-700'
-                        }`}
-                      >
-                        {parserStatus.message}
+                            ? 'bg-green-50 border-green-200 text-green-800'
+                            : parserStatus.type === 'error'
+                            ? 'bg-red-50 border-red-200 text-red-800'
+                            : 'bg-gray-100 border-gray-300 text-gray-700'
+                        }`}>
+                          {parserStatus.type}
+                        </p>
+                        <p className="mt-3">{parserStatus.message}</p>
                       </div>
                     )}
 
                     <p className="text-xs text-gray-500 font-sans">
-                      Ekstrak: Order ID, Item Name, User ID, Zone ID, Username, dan Nama Pembeli dari raw Itemku text.
+                      Extract order ID, item name, user ID, zone ID, username, and purchaser name from raw Itemku text.
                     </p>
                   </div>
                 )}
@@ -463,7 +463,7 @@ const Cashier: React.FC = () => {
                     type="text"
                     value={purchaserName}
                     onChange={(e) => setPurchaserName(e.target.value)}
-                    placeholder="Pembeli"
+                    placeholder="Buyer name"
                     className="w-full bg-transparent text-sm text-black font-sans py-2 border-b border-gray-300 focus:border-black focus:outline-none transition-colors"
                   />
                 </div>
@@ -646,13 +646,13 @@ const AccountListByCategory: React.FC<AccountListByCategoryProps> = ({
   onToggle,
 }) => {
   // Categorize accounts
-  const cukup = accounts.filter(
+  const enough = accounts.filter(
     (acc) => acc.real_diamond >= totalDiamond
   );
-  const cukupPotensial = accounts.filter(
+  const potentialCoverage = accounts.filter(
     (acc) => acc.real_diamond < totalDiamond && acc.potential_diamond >= totalDiamond
   );
-  const tidakCukup = accounts.filter(
+  const shortfall = accounts.filter(
     (acc) => acc.potential_diamond < totalDiamond
   );
 
@@ -695,9 +695,9 @@ const AccountListByCategory: React.FC<AccountListByCategoryProps> = ({
 
   return (
     <div>
-      {renderCategory('✓ CUKUP', cukup, 'cukup')}
-      {renderCategory('~ CUKUP (DENGAN POTENSI)', cukupPotensial, 'cukup-potensial')}
-      {renderCategory('✗ TIDAK CUKUP (MINUS)', tidakCukup, 'minus')}
+      {renderCategory('Enough', enough, 'cukup')}
+      {renderCategory('Potential Coverage', potentialCoverage, 'cukup-potensial')}
+      {renderCategory('Shortfall', shortfall, 'minus')}
     </div>
   );
 };
@@ -715,10 +715,10 @@ const AccountCheckboxItem: React.FC<AccountCheckboxItemProps> = ({
       onClick={onToggle}
       className={`flex items-start gap-4 p-4 border rounded-none cursor-pointer transition-colors ${
         category === 'cukup'
-          ? 'border-green-300 bg-green-50 hover:bg-green-100'
+          ? 'border-gray-300 bg-white hover:bg-gray-50'
           : category === 'cukup-potensial'
-          ? 'border-yellow-300 bg-yellow-50 hover:bg-yellow-100'
-          : 'border-red-300 bg-red-50 hover:bg-red-100'
+          ? 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+          : 'border-gray-300 bg-white hover:bg-gray-50'
       }`}
     >
       {/* Custom Checkbox */}
@@ -771,7 +771,7 @@ const AccountCheckboxItem: React.FC<AccountCheckboxItemProps> = ({
             <div className="flex items-center gap-3">
               <p
                 className={`text-sm font-serif font-semibold ${
-                  remainingBalance >= 0 ? 'text-green-600' : 'text-red-600'
+                  remainingBalance >= 0 ? 'text-black' : 'text-gray-700'
                 }`}
               >
                 {remainingBalance.toLocaleString()}

@@ -185,24 +185,24 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, onEdit, isMobile, isEx
     switch (classification) {
       case 'Available':
         return (
-          <div className="inline-block px-3 py-1 bg-green-100 border border-green-300 rounded-none">
-            <p className="text-xs font-sans font-bold text-green-700">
+          <div className="inline-block px-3 py-1 bg-green-50 border border-green-200 rounded-none">
+            <p className="text-xs font-sans font-semibold text-green-800 uppercase tracking-wide">
               {classification}
             </p>
           </div>
         );
       case 'Forecast':
         return (
-          <div className="inline-block px-3 py-1 bg-yellow-100 border border-yellow-300 rounded-none">
-            <p className="text-xs font-sans font-bold text-yellow-700">
+          <div className="inline-block px-3 py-1 bg-gray-100 border border-gray-300 rounded-none">
+            <p className="text-xs font-sans font-semibold text-gray-700 uppercase tracking-wide">
               {classification}
             </p>
           </div>
         );
       case 'Preorder':
         return (
-          <div className="inline-block px-3 py-1 bg-red-100 border border-red-300 rounded-none">
-            <p className="text-xs font-sans font-bold text-red-700">
+          <div className="inline-block px-3 py-1 bg-red-50 border border-red-200 rounded-none">
+            <p className="text-xs font-sans font-semibold text-red-800 uppercase tracking-wide">
               {classification}
             </p>
           </div>
@@ -210,7 +210,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, onEdit, isMobile, isEx
       default:
         return (
           <div className="inline-block px-3 py-1 bg-gray-100 border border-gray-300 rounded-none">
-            <p className="text-xs font-sans font-bold text-gray-700">
+            <p className="text-xs font-sans font-semibold text-gray-700 uppercase tracking-wide">
               Unknown
             </p>
           </div>
@@ -265,11 +265,11 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, onEdit, isMobile, isEx
               <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Status</p>
               <div className="space-y-1">
                 {account.pending_wdp > 0 && (
-                  <p className="text-sm text-red-600 font-sans font-semibold flex items-center gap-1">
-                    <span>💳</span> Debt: {Math.ceil(account.pending_wdp / 100)} days
+                  <p className="text-sm text-black font-sans font-semibold">
+                    Debt: {Math.ceil(account.pending_wdp / 100)} days
                   </p>
                 )}
-                <p className="text-xs text-gray-500 font-sans">{account.is_active ? '✓ Active' : '✗ Inactive'}</p>
+                <p className="text-xs text-gray-500 font-sans">{account.is_active ? 'Active' : 'Inactive'}</p>
               </div>
             </div>
 
@@ -337,12 +337,12 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, onEdit, isMobile, isEx
       <div className="flex flex-col justify-center gap-3">
         <div className="space-y-1">
           {account.pending_wdp > 0 && (
-            <p className="text-sm text-red-600 font-sans font-semibold flex items-center gap-1">
-              <span>💳</span> Debt: {Math.ceil(account.pending_wdp / 100)} days
+            <p className="text-sm text-black font-sans font-semibold">
+              Debt: {Math.ceil(account.pending_wdp / 100)} days
             </p>
           )}
           <p className="text-xs text-gray-500 font-sans">
-            {account.is_active ? '✓ Active' : '✗ Inactive'}
+            {account.is_active ? 'Active' : 'Inactive'}
           </p>
         </div>
         <button
@@ -492,7 +492,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({
               disabled={isLoading}
             />
             <p className="text-xs text-gray-500 font-sans mt-2">
-              Note: 1 Hari = 20 Diamond. (1 WDP = 80 DM Instan + 7 Hari WDP)
+              1 day equals 20 diamonds. 1 WDP equals 80 instant diamonds plus 7 WDP days.
             </p>
             <div className="flex gap-2 mt-3">
               <button
@@ -683,7 +683,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({
               disabled={isLoading}
             />
             <p className="text-xs text-gray-500 font-sans mt-2">
-              Note: 1 Hari = 20 Diamond. (1 WDP = 80 DM Instan + 7 Hari WDP)
+              1 day equals 20 diamonds. 1 WDP equals 80 instant diamonds plus 7 WDP days.
             </p>
             <div className="flex gap-2 mt-3">
               <button

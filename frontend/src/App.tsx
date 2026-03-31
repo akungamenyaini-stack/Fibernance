@@ -146,7 +146,7 @@ const App: React.FC = () => {
         <header className="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-1 hover:bg-gray-100 transition-colors rounded-md"
+            className="p-1 hover:bg-gray-100 transition-colors rounded-none"
             aria-label="Toggle menu"
           >
             <svg

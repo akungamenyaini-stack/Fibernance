@@ -23,6 +23,8 @@ const Orders: React.FC = () => {
   const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'item' | 'diamond'>('date-desc');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [, setUpdateTrigger] = useState(0); // Trigger re-render untuk countdown update
+  const primaryActionClass = 'px-3 py-1.5 text-xs font-semibold text-white bg-black hover:bg-charcoal transition-colors rounded-none disabled:opacity-50 disabled:cursor-not-allowed';
+  const secondaryActionClass = 'px-3 py-1.5 text-xs font-semibold text-black border border-gray-300 hover:border-black hover:bg-gray-50 transition-colors rounded-none disabled:opacity-50 disabled:cursor-not-allowed';
 
   const handleFinish = async (order: ComboOrderResponse) => {
     setVideoUploadOrder(order);
@@ -116,11 +118,11 @@ const Orders: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     if (status === 'DONE') {
-      return <span className="px-3 py-1 text-xs font-semibold text-white bg-black rounded-none">DONE</span>;
+      return <span className="status-badge status-badge-success">Done</span>;
     } else if (status === 'CANCELLED') {
-      return <span className="px-3 py-1 text-xs font-semibold text-white bg-red-600 rounded-none">CANCELLED</span>;
+      return <span className="status-badge status-badge-danger">Cancelled</span>;
     } else {
-      return <span className="px-3 py-1 text-xs font-semibold text-white bg-gray-400 rounded-none">PENDING</span>;
+      return <span className="status-badge status-badge-neutral">Pending</span>;
     }
   };
 
@@ -187,14 +189,14 @@ const Orders: React.FC = () => {
           <div className="flex-1">
             <input
               type="text"
-              placeholder="Cari: Order ID, ID Game, Nama Pembeli, atau Username..."
+              placeholder="Search by invoice, player ID, buyer, username, or item..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-2 text-sm border border-gray-300 rounded-none focus:border-black focus:outline-none transition-colors"
             />
             {searchTerm && (
               <p className="mt-1 text-xs text-gray-600">
-                Ditemukan <span className="font-semibold">{filteredAndSortedOrders.length}</span> pesanan
+                Showing <span className="font-semibold">{filteredAndSortedOrders.length}</span> matching orders
               </p>
             )}
           </div>
@@ -202,16 +204,16 @@ const Orders: React.FC = () => {
           {/* Sort Controls */}
           <div className="flex gap-2 items-center lg:flex-shrink-0">
             <label className="text-xs font-semibold text-charcoal uppercase tracking-wide whitespace-nowrap">
-              Sortir:
+              Sort:
             </label>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
               className="px-3 py-2 text-sm border border-gray-300 bg-white rounded-none focus:border-black focus:outline-none transition-colors cursor-pointer"
             >
-              <option value="date-desc">Pengiriman (Terbaru)</option>
-              <option value="date-asc">Pengiriman (Terdekat)</option>
-              <option value="item">Nama Item (A-Z)</option>
+              <option value="date-desc">Delivery Date (Newest)</option>
+              <option value="date-asc">Delivery Date (Soonest)</option>
+              <option value="item">Item Name (A-Z)</option>
               <option value="diamond">Total Diamond</option>
             </select>
 
@@ -220,7 +222,7 @@ const Orders: React.FC = () => {
               <button
                 onClick={() => setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc')}
                 className="p-2 border border-gray-300 hover:bg-gray-50 transition-colors rounded-none"
-                title={sortDirection === 'desc' ? 'Terbesar ke Terkecil' : 'Terkecil ke Terbesar'}
+                title={sortDirection === 'desc' ? 'Largest to Smallest' : 'Smallest to Largest'}
               >
                 {/* Sort Icon - Lines getting smaller going down */}
                 <svg className={`w-4 h-4 transition-transform ${sortDirection === 'asc' ? 'rotate-180' : ''}`}
@@ -257,7 +259,7 @@ const Orders: React.FC = () => {
 
         {filteredAndSortedOrders && filteredAndSortedOrders.length === 0 && orders && orders.length > 0 && (
           <div className="text-center py-16">
-            <p className="text-sm text-gray-600 font-sans">Tidak ada pesanan yang sesuai dengan pencarian</p>
+            <p className="text-sm text-gray-600 font-sans">No orders match the current search.</p>
           </div>
         )}
 
@@ -372,7 +374,7 @@ const Orders: React.FC = () => {
                               <button
                                 onClick={() => handleFinish(order)}
                                 disabled={false}
-                                className="px-3 py-1.5 text-xs font-semibold text-white bg-black hover:bg-charcoal disabled:opacity-50 transition-colors rounded-none"
+                                className={primaryActionClass}
                               >
                                 Finish
                               </button>
@@ -383,16 +385,16 @@ const Orders: React.FC = () => {
                               <button
                                 onClick={() => handleCancel(order.id)}
                                 disabled={cancelMutation.isPending}
-                                className="px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors rounded-none"
+                                className={secondaryActionClass}
                               >
-                                {cancelMutation.isPending ? 'Cancelling...' : 'Cancel'}
+                                {cancelMutation.isPending ? 'Cancelling' : 'Cancel'}
                               </button>
                             )}
 
                             {/* Print Button - Always show */}
                             <button
                               onClick={() => handlePrint(order)}
-                              className="px-3 py-1.5 text-xs font-semibold text-black border border-black hover:bg-gray-50 transition-colors rounded-none"
+                              className={secondaryActionClass}
                             >
                               Print
                             </button>
@@ -437,10 +439,10 @@ const Orders: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Row 2: Pembeli | Game ID & Zone */}
+                      {/* Row 2: Buyer | Game ID & Zone */}
                       <div className="flex justify-between gap-2 text-xs text-gray-700">
                         <div className="flex-1 min-w-0 truncate">
-                          <span className="font-semibold">Pembeli:</span> {order.buyer_name}
+                          <span className="font-semibold">Buyer:</span> {order.buyer_name}
                         </div>
                         <div className="flex-shrink-0 text-right">
                           <span className="font-semibold">ID:</span> {order.target_id}
@@ -450,10 +452,10 @@ const Orders: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Row 3: Akun Pengiriman */}
+                      {/* Row 3: Sending Accounts */}
                       {order.sending_accounts && Object.keys(order.sending_accounts).length > 0 && (
                         <div className="text-xs text-gray-700 truncate">
-                          <span className="font-semibold">Akun:</span>{' '}
+                          <span className="font-semibold">Accounts:</span>{' '}
                           {Object.entries(order.sending_accounts).map(([, accountData]: [string, any], idx) => {
                             const accountName = typeof accountData === 'object' && accountData.name ? accountData.name : accountData;
                             return (
@@ -466,9 +468,9 @@ const Orders: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Row 4: Pengiriman Time (Compact) */}
+                      {/* Row 4: Delivery Time */}
                       <div className="text-xs text-gray-600">
-                        📦 {formatDeliveryDate(order.actual_delivery_at)}
+                        {formatDeliveryDate(order.actual_delivery_at)}
                       </div>
                     </button>
 
@@ -483,13 +485,13 @@ const Orders: React.FC = () => {
 
                         {/* Item Details */}
                         <div>
-                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Item Pesanan</p>
+                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Order Item</p>
                           <p className="text-sm text-black">{order.quantity}x {order.item_name || 'N/A'}</p>
                         </div>
 
                         {/* Buyer Name */}
                         <div>
-                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Nama Pembeli</p>
+                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Buyer Name</p>
                           <p className="text-sm text-black">{order.buyer_name}</p>
                         </div>
 
@@ -508,21 +510,21 @@ const Orders: React.FC = () => {
                         {/* Diamond Details */}
                         <div>
                           <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Total Diamond</p>
-                          <p className="text-sm text-black font-semibold">{order.total_diamond.toLocaleString()} 💎</p>
+                          <p className="text-sm text-black font-semibold">{order.total_diamond.toLocaleString()}</p>
                         </div>
 
                         {/* Processing Accounts - Full Details */}
                         {order.sending_accounts && Object.keys(order.sending_accounts).length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Akun Pengiriman (Processing)</p>
+                            <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Sending Accounts</p>
                             <div className="text-sm text-black space-y-1">
                               {Object.entries(order.sending_accounts).map(([accountId, accountData]: [string, any]) => {
                                 const accountName = typeof accountData === 'object' && accountData.name ? accountData.name : accountData;
                                 const deduction = order.deduction_breakdown[accountId] || 0;
                                 return (
-                                  <div key={accountId} className="flex justify-between items-center p-2 bg-white border border-gray-200 rounded">
+                                  <div key={accountId} className="flex justify-between items-center p-2 bg-white border border-gray-200 rounded-none">
                                     <span className="font-semibold">{accountName}</span>
-                                    <span className="text-gray-600">{deduction.toLocaleString()} 💎</span>
+                                    <span className="text-gray-600">{deduction.toLocaleString()}</span>
                                   </div>
                                 );
                               })}
@@ -532,13 +534,13 @@ const Orders: React.FC = () => {
 
                         {/* Delivery Information */}
                         <div>
-                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Estimasi Pengiriman</p>
+                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Delivery Window</p>
                           <p className="text-sm text-black">{formatDeliveryDate(order.actual_delivery_at)}</p>
                         </div>
 
                         {/* Order Status */}
                         <div>
-                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Status Pesanan</p>
+                          <p className="text-xs font-semibold text-charcoal uppercase tracking-wide mb-1">Order Status</p>
                           <div className="text-sm">
                             {getStatusBadge(order.status)}
                           </div>
@@ -568,23 +570,23 @@ const Orders: React.FC = () => {
                                 <button
                                   onClick={() => handleCancel(order.id)}
                                   disabled={cancelMutation.isPending}
-                                  className="flex-1 px-3 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors rounded-none"
+                                  className="flex-1 px-3 py-2 text-xs font-semibold text-black border border-gray-300 hover:border-black hover:bg-gray-50 disabled:opacity-50 transition-colors rounded-none"
                                 >
-                                  {cancelMutation.isPending ? 'Cancelling...' : 'Cancel Order'}
+                                  {cancelMutation.isPending ? 'Cancelling' : 'Cancel Order'}
                                 </button>
                               </>
                             )}
                             {order.status === 'DONE' && (
                               <button
                                 onClick={() => handleFinishPrint(order)}
-                                className="flex-1 px-3 py-2 text-xs font-semibold text-white bg-green-600 hover:bg-green-700 transition-colors rounded-none"
+                                className="flex-1 px-3 py-2 text-xs font-semibold text-white bg-black hover:bg-charcoal transition-colors rounded-none"
                               >
-                                Finish Print
+                                Delivery Notice
                               </button>
                             )}
                             <button
                               onClick={() => handlePrint(order)}
-                              className="flex-1 px-3 py-2 text-xs font-semibold text-black border border-black hover:bg-gray-100 transition-colors rounded-none"
+                              className="flex-1 px-3 py-2 text-xs font-semibold text-black border border-gray-300 hover:border-black hover:bg-gray-50 transition-colors rounded-none"
                             >
                               Print
                             </button>
@@ -646,7 +648,7 @@ interface DeliveryNotificationModalProps {
 }
 
 const DeliveryNotificationModal: React.FC<DeliveryNotificationModalProps> = ({ order, onClose }) => {
-  const [language, setLanguage] = React.useState<'id' | 'en'>('id');
+  const [language, setLanguage] = React.useState<'id' | 'en'>('en');
 
   // Format date only (no time) for delivery notifications
   // ID: DD/MM/YYYY
@@ -687,20 +689,20 @@ const DeliveryNotificationModal: React.FC<DeliveryNotificationModalProps> = ({ o
   const handleCopyText = async () => {
     try {
       await navigator.clipboard.writeText(notificationText);
-      alert(language === 'id' ? '✓ Pesan disalin!' : '✓ Message copied!');
+      alert('Message copied.');
     } catch (err) {
       console.error('Failed to copy text:', err);
-      alert(language === 'id' ? 'Gagal menyalin pesan' : 'Failed to copy message');
+      alert('Failed to copy message.');
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-none max-h-[90vh] overflow-y-auto w-[90%] md:w-full max-w-sm shadow-lg">
+      <div className="bg-white rounded-none max-h-[90vh] overflow-y-auto w-[90%] md:w-full max-w-sm border border-gray-200">
         {/* Modal Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <h2 className="text-lg font-serif font-semibold text-black">
-            {language === 'id' ? 'Notifikasi Pengiriman' : 'Delivery Notification'}
+            Delivery Notice
           </h2>
           <div className="flex items-center gap-2 border-l border-gray-300 pl-4">
             <button
@@ -736,18 +738,14 @@ const DeliveryNotificationModal: React.FC<DeliveryNotificationModalProps> = ({ o
         <div className="p-6 space-y-4">
           {/* Order Info */}
           <div className="bg-gray-50 p-4 rounded-none border border-gray-200">
-            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-              {language === 'id' ? 'Pesanan' : 'Order'}
-            </p>
+            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Order</p>
             <p className="text-sm font-semibold text-black">{order.invoice_ref}</p>
             <p className="text-sm text-gray-700">{order.quantity}x {order.item_name}</p>
           </div>
 
           {/* Notification Message Box */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-              {language === 'id' ? 'Pesan Notifikasi' : 'Notification Message'}
-            </label>
+            <label className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Notification Message</label>
             <div className="bg-white border border-gray-300 rounded-none p-4">
               <p 
                 className="text-sm text-black whitespace-pre-wrap font-mono"
@@ -759,19 +757,9 @@ const DeliveryNotificationModal: React.FC<DeliveryNotificationModalProps> = ({ o
           </div>
 
           {/* Info Text */}
-          <div className="text-xs text-gray-600 bg-blue-50 border border-blue-200 px-4 py-3 rounded-none space-y-1">
-            <p>
-              {language === 'id' 
-                ? '• Salin pesan ini dan kirim kepada pembeli'
-                : '• Copy this message and send it to the buyer'
-              }
-            </p>
-            <p>
-              {language === 'id'
-                ? '• Gunakan di WhatsApp, SMS, atau media lainnya'
-                : '• Use on WhatsApp, SMS, or other media'
-              }
-            </p>
+          <div className="text-xs text-gray-600 bg-gray-50 border border-gray-200 px-4 py-3 rounded-none space-y-1">
+            <p>Copy the message and send it through your preferred delivery channel.</p>
+            <p>The language toggle changes the generated customer-facing text, not the modal UI.</p>
           </div>
         </div>
 
@@ -781,13 +769,13 @@ const DeliveryNotificationModal: React.FC<DeliveryNotificationModalProps> = ({ o
             onClick={handleCopyText}
             className="flex-1 px-4 py-2 bg-black text-white font-semibold text-sm hover:bg-charcoal transition-colors rounded-none"
           >
-            {language === 'id' ? 'Copy' : 'Copy'}
+            Copy
           </button>
           <button
             onClick={onClose}
             className="flex-1 px-4 py-2 border border-gray-300 text-black font-semibold text-sm hover:bg-gray-50 transition-colors rounded-none"
           >
-            {language === 'id' ? 'Tutup' : 'Close'}
+            Close
           </button>
         </div>
       </div>
@@ -805,7 +793,7 @@ interface ReceiptModalProps {
 }
 
 const ReceiptModal: React.FC<ReceiptModalProps> = ({ order, onClose }) => {
-  const [language, setLanguage] = React.useState<'id' | 'en'>('id');
+  const [language, setLanguage] = React.useState<'id' | 'en'>('en');
   const receiptRef = React.useRef<HTMLDivElement>(null);
 
   // Determine mode: INVOICE for PENDING, RECEIPT for DONE/CANCELLED
@@ -1045,10 +1033,10 @@ ${divider}`;
   const handleCopyText = async () => {
     try {
       await navigator.clipboard.writeText(receiptText);
-      alert(language === 'id' ? '✓ Teks struk disalin!' : '✓ Receipt text copied!');
+      alert('Receipt text copied.');
     } catch (err) {
       console.error('Failed to copy text:', err);
-      alert(language === 'id' ? 'Gagal menyalin teks' : 'Failed to copy text');
+      alert('Failed to copy text.');
     }
   };
 
@@ -1065,12 +1053,12 @@ ${divider}`;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-none max-h-[90vh] overflow-y-auto w-[90%] md:w-full max-w-sm shadow-lg">
+      <div className="bg-white rounded-none max-h-[90vh] overflow-y-auto w-[90%] md:w-full max-w-sm border border-gray-200">
         {/* Modal Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h2 className="text-lg font-serif font-semibold text-black">
-              {mode === 'invoice' ? (language === 'id' ? 'INVOICE' : 'INVOICE') : (language === 'id' ? 'STRUK' : 'RECEIPT')}
+              {mode === 'invoice' ? 'INVOICE' : 'RECEIPT'}
             </h2>
             <div className="flex items-center gap-2 border-l border-gray-300 pl-4">
               <button
@@ -1120,19 +1108,19 @@ ${divider}`;
             onClick={handleCopyText}
             className="flex-1 px-4 py-2 bg-gray-100 text-black font-semibold text-sm hover:bg-gray-200 transition-colors rounded-none border border-gray-300"
           >
-            {language === 'id' ? 'Copy Text' : 'Copy Text'}
+            Copy Text
           </button>
           <button
             onClick={handlePrint}
             className="flex-1 px-4 py-2 bg-black text-white font-semibold text-sm hover:bg-charcoal transition-colors rounded-none"
           >
-            {language === 'id' ? 'Cetak' : 'Print'}
+            Print
           </button>
           <button
             onClick={onClose}
             className="flex-1 px-4 py-2 border border-gray-300 text-black font-semibold text-sm hover:bg-gray-50 transition-colors rounded-none"
           >
-            {language === 'id' ? 'Tutup' : 'Close'}
+            Close
           </button>
         </div>
       </div>
@@ -1199,10 +1187,10 @@ const VideoUploadModal: React.FC<VideoUploadModalProps> = ({ order, onClose }) =
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-none shadow-lg max-w-md w-full max-h-screen overflow-y-auto">
+      <div className="bg-white rounded-none border border-gray-200 max-w-md w-full max-h-screen overflow-y-auto">
         {/* Modal Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-black">Upload Bukti Video Pengiriman</h2>
+          <h2 className="text-lg font-serif font-semibold text-black">Upload Delivery Video</h2>
           <button
             onClick={onClose}
             disabled={isUploading}
@@ -1216,7 +1204,7 @@ const VideoUploadModal: React.FC<VideoUploadModalProps> = ({ order, onClose }) =
         <div className="p-6 space-y-4">
           {/* Order Info */}
           <div className="bg-gray-50 p-4 rounded-none border border-gray-200">
-            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Pesanan</p>
+            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Order</p>
             <p className="text-sm font-semibold text-black">{order.invoice_ref}</p>
             <p className="text-sm text-gray-700">{order.quantity}x {order.item_name}</p>
           </div>
@@ -1224,7 +1212,7 @@ const VideoUploadModal: React.FC<VideoUploadModalProps> = ({ order, onClose }) =
           {/* Success Message */}
           {success && (
             <div className="bg-green-50 border border-green-200 px-4 py-3 rounded-none">
-              <p className="text-sm font-semibold text-green-800">✓ Video berhasil diunggah!</p>
+              <p className="text-sm font-semibold text-green-800">Video uploaded successfully.</p>
             </div>
           )}
 
@@ -1240,7 +1228,7 @@ const VideoUploadModal: React.FC<VideoUploadModalProps> = ({ order, onClose }) =
             <>
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                  Pilih Video File (Maks 50MB)
+                  Select Video File (Max 50 MB)
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -1256,24 +1244,24 @@ const VideoUploadModal: React.FC<VideoUploadModalProps> = ({ order, onClose }) =
                     disabled={isUploading}
                     className="flex-1 px-4 py-3 border-2 border-dashed border-gray-300 hover:border-black bg-gray-50 hover:bg-gray-100 text-sm font-semibold text-black transition-colors rounded-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {selectedFile ? '✓ ' + selectedFile.name : 'Pilih File'}
+                    {selectedFile ? selectedFile.name : 'Select File'}
                   </button>
                 </div>
               </div>
 
               {/* File Info */}
               {selectedFile && (
-                <div className="bg-blue-50 border border-blue-200 px-4 py-3 rounded-none space-y-1">
-                  <p className="text-xs font-semibold text-blue-700 uppercase">File Selected</p>
-                  <p className="text-sm text-blue-900">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                <div className="bg-gray-50 border border-gray-200 px-4 py-3 rounded-none space-y-1">
+                  <p className="text-xs font-semibold text-gray-700 uppercase">Selected File</p>
+                  <p className="text-sm text-black">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                 </div>
               )}
 
               {/* Info Text */}
               <div className="text-xs text-gray-600 bg-gray-50 border border-gray-200 px-4 py-3 rounded-none space-y-1">
-                <p>• Format: Video (MP4, MOV, AVI, dsb)</p>
-                <p>• Ukuran maksimal: 50 MB</p>
-                <p>• Video akan diunggah ke server Telegram</p>
+                <p>Accepted formats: MP4, MOV, AVI, and other standard video files.</p>
+                <p>Maximum upload size: 50 MB.</p>
+                <p>The video will be uploaded to the Telegram delivery channel.</p>
               </div>
             </>
           )}
@@ -1286,7 +1274,7 @@ const VideoUploadModal: React.FC<VideoUploadModalProps> = ({ order, onClose }) =
             disabled={isUploading}
             className="flex-1 px-4 py-2 border border-gray-300 text-black font-semibold text-sm hover:bg-gray-50 transition-colors rounded-none disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Batal
+            Cancel
           </button>
           <button
             onClick={handleUpload}
